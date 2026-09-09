@@ -5,10 +5,11 @@
 ## 1. 已验证环境事实
 
 - Windows 的 `C:\Users\30537\.vela\sdk\system-images\vela-miwear-watch-5.0` 是普通 2025-07 镜像，不是比赛健康镜像。
-- 比赛 UI 标签是 `vela-miwear-watch-5.0(开发者大赛)`，实际 `imageType` 和目录为 `vela-miwear-watch-5.0-beta`；该镜像当前本机不存在，必须后续在 AIoT-IDE 设备管理器选择比赛标签下载，再创建 VVD。因此其状态是“待下载、待创建、待验证”。
-- Windows 当前已有且可启动的是普通 `vela-watch-5` VVD；它可用于 P0 基础流程验证，不能据此声称 `service.health` 可用。
+- 比赛 UI 标签是 `vela-miwear-watch-5.0(开发者大赛)`，实际 `imageType` 和目录为 `vela-miwear-watch-5.0-beta`；该比赛镜像已安装，466×466 圆屏 VVD `shihe-health-watch` 已创建并成功启动，ADB 设备为 `emulator-5554`，启动日志出现 `service_health_onRegister`。
+- 食衡 M1 debug RPK 已在 `shihe-health-watch` 构建、安装并启动。首次设置保存 90 kg、2000 kcal 和默认三餐时间后，停止并重启应用可直达首页且数据保留；进入修改设置时数据可正确回填。
 - Ubuntu VM 当前 goldfish 已验证 `CONFIG_QUICKAPP=y`、`CONFIG_QUICKAPP_VAPP=y`；VelaClaw 禁用，`CONFIG_MQ_MAXMSGSIZE=32`。
-- 当前 goldfish 已运行基线 release RPK；食衡 RPK 尚未实现、构建或部署。
+- 当前 goldfish 已运行基线 release RPK；食衡 release RPK 尚未在 goldfish 验证或部署。
+- 上述结果仅证明 M1 debug 和比赛 VVD 的当前验证状态；`service_health_onRegister` 不等于食衡已经接入或调用 `service.health` API，也不等于 release RPK 或 goldfish 已验证。
 - `tp-` key 仅由用户在官方 goldfish `ai_agent` 配置界面私下输入。食衡应用绝不接收或存储 key，也不设计自建后端。
 
 ## 2. 已知目标设备约束（非本机环境事实）
@@ -20,14 +21,14 @@
 
 | capability | delivery priority | validation environment / current state | fallback | blocking |
 | --- | --- | --- | --- | --- |
-| 本地存储（`system.storage`） | P0，计划实现 | 普通 `vela-watch-5` VVD，之后在 Ubuntu goldfish 验证 release RPK | 写失败保留草稿并明确提示；内存态只用于继续演示 | 是；正式 P0 要求重启后数据保留 |
+| 本地存储（`system.storage`） | P0，计划实现 | M1 debug 已在比赛 VVD 验证首次设置持久化与设置回填；完整 P0 和 goldfish release 仍待验证 | 写失败保留草稿并明确提示；内存态只用于继续演示 | 是；正式 P0 要求重启后数据保留 |
 | 餐时胶囊 | P0，计划实现 | 普通 VVD 与 goldfish；验证每次打开/恢复及 pending/later/skipped/completed | 无系统闹钟时仍按本地状态在下次打开/恢复判断 | 是 |
 | 最近吃过 / 收藏套餐 | P0，计划实现 | 普通 VVD 与 goldfish；典型一餐 30 秒内，收藏套餐不超过三次点击进入确认 | 目录选择；仍须确认后保存 | 是 |
 | 食品目录与文本解析 | P0，计划实现 | 普通 VVD 与 goldfish；固定 60 项及冻结解析样例 | 手动目录选择；待处理内容禁止静默保存 | 是 |
 | 餐食/运动修改与删除 | P0，计划实现 | 普通 VVD 与 goldfish；首页及历史即时回算、重启保留 | 操作失败保留原记录并提示 | 是 |
 | goldfish RPK | P0 部署门禁 | Ubuntu goldfish；当前仅基线包已验证，食衡 release RPK 待验 | Windows VVD 可调 UI，但不能代替 goldfish | 是 |
-| 比赛健康镜像与 VVD | P1 验证载体 | `vela-miwear-watch-5.0-beta` 待下载、比赛 VVD 待创建、待启动验证 | 用普通 `vela-watch-5` 验 P0；健康卡显示不可用 | 否 |
-| `service.health` HEART_RATE/SPO2/STRESS | P1，可选增强 | 比赛 VVD 创建后按官方 Mock 流程验证；当前未验证，真机另验 | 显示“当前设备暂不支持”，主流程照常 | 否 |
+| 比赛健康镜像与 VVD | P1 验证载体 | `vela-miwear-watch-5.0-beta` 已安装；466×466 圆屏 `shihe-health-watch` 已创建并成功启动，ADB 为 `emulator-5554` | 健康卡能力未接入或不可用时显示不可用 | 否 |
+| `service.health` HEART_RATE/SPO2/STRESS | P1，可选增强 | 比赛 VVD 启动日志已有 `service_health_onRegister`；食衡尚未接入或调用 API，官方 Mock 流程和真机均待验证 | 显示“当前设备暂不支持”，主流程照常 | 否 |
 | `system.alarm` | 可选增强，待验证 | 支持该 feature 的 VVD/真机；当前环境未验证 | 保存该餐稍后时间，仅在下次打开/恢复时提示 | 否；不是 P0 阻塞项 |
 | VelaClaw | P1，可选增强 | 需重配/重编 goldfish，启用 VelaClaw/`ai_agent` 并按官方要求提高消息队列上限；当前禁用且上限为 32 | 10 秒失败或超时后使用确定性本地建议 | 否 |
 | 真实腕上录音 / 云端 ASR | P2，明确不做 | 无交付验证环境 | 明示边界的键入文本演示与本地确定性解析 | 否；禁止宣称 |
@@ -41,7 +42,8 @@
 
 ## 4. 验证约束
 
-- “普通镜像已存在”不等于比赛镜像已下载；“比赛镜像已下载”也不等于 VVD 可启动或接口跑通。
+- 比赛镜像、VVD 启动和 `service_health_onRegister` 已验证，但这些环境事实不等于食衡已接入或跑通 `service.health` API。
+- M1 debug 的安装、启动和设置持久化验证不等于完整 P0、release RPK 或 goldfish 已验证。
 - “官方文档支持”不等于当前固件启用；须记录镜像/固件、权限、调用结果、日志或截图。
 - 模拟器 HEART_RATE、SPO2、STRESS 是官方 Mock 数据，必须标注模拟来源，不能外推为真机验证；只在页面可见时读取/订阅，离页取消。
 - 心率和血氧只展示；压力仅可触发温和本地建议。三类健康数据均不持久化、不进热量公式、不诊断。

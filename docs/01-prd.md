@@ -98,7 +98,7 @@
 - 仅整段消费匹配文本，支持有限中文/阿拉伯数字，以及每个食品条目明确声明的单位。
 - 只有完全没有数量时，才可使用界面明确展示的默认份量。
 - 数字无单位、单位不支持、未知词、否定语义均保留为待处理，禁止静默保存或模糊猜测。
-- 解析返回 `complete | needs_review | empty`、`items` 和 `unresolved`，只产生内存草稿，无存储副作用。
+- 解析返回 `complete | needs_review | empty`、`recognizedItems` 和 `unknownSegments`（同时保留设计兼容字段 `items/unresolved`），只产生内存草稿，无存储副作用。
 - `needs_review` 必须由用户处理后方可进入可保存状态。
 
 ### 确认、维护与今日看板

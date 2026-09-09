@@ -16,10 +16,11 @@ quickapp/shihe/src/
 ├── manifest.json
 ├── common/
 │   ├── components/       # 胶囊、看板、健康卡、确认卡
-│   ├── data/foods-v1.js  # 固定 60 项只读目录
+│   ├── meal-text-parser.js # 一句话记餐纯确定性解析器
 │   ├── domain/           # 公式、校验、日期、解析器
 │   ├── services/         # storage/health/alarm/velaclaw 适配器
 │   └── store/            # 单一持久化入口、迁移、保留
+├── data/foods.js          # 固定 60 项只读目录
 └── pages/
     ├── onboarding/       ├── today/       ├── meal/
     ├── confirm/          ├── exercise/    ├── history/
@@ -56,7 +57,7 @@ FoodV1 {
   id: string, name: string, category: string,
   basisUnit: "g" | "ml",
   energyKcalPer100: number,
-  defaultServing: { label: string, amount: number, uiStep: number },
+  defaultServing: { label: string, amount: number, unit: string },
   parseUnits: object, aliases: string[],
   sourceId: string, sourceNote: string, tags: string[]
 }
@@ -149,7 +150,8 @@ MET 为固定估算，不用健康数据修正。首页聚合必须显示摄入�
 ```text
 ParseResult {
   status: "complete" | "needs_review" | "empty",
-  items: ParsedItem[], unresolved: UnresolvedFragment[]
+  recognizedItems: ParsedItem[], unknownSegments: UnresolvedFragment[],
+  items: ParsedItem[], unresolved: UnresolvedFragment[] // 兼容字段
 }
 ```
 

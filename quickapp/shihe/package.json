@@ -4,6 +4,7 @@
   "description": "食衡 openvela 手表快应用",
   "engines": { "node": ">=8.10" },
   "scripts": {
+    "test": "node --experimental-default-type=module test/m2-food-parser.test.mjs",
     "start": "aiot start --watch",
     "build": "aiot build",
     "release": "aiot release"
