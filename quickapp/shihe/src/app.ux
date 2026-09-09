@@ -1,0 +1,10 @@
+<script>
+export default {
+  onCreate() {
+    console.log('shihe app created')
+  },
+  onDestroy() {
+    console.log('shihe app destroyed')
+  }
+}
+</script>

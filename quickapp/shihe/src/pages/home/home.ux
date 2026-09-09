@@ -1,0 +1,76 @@
+<template>
+  <div class="page">
+    <scroll class="content" scroll-y="true">
+      <text class="title">食衡</text>
+      <text class="status" if="{{statusMessage}}">{{statusMessage}}</text>
+      <div class="hero" if="{{profile}}">
+        <text class="eyebrow">今日基座</text>
+        <text class="big">{{profile.dailyTargetKcal}}</text>
+        <text class="unit">kcal 每日目标 · 估算</text>
+        <text class="done">首次设置已完成</text>
+      </div>
+      <div class="card" if="{{profile}}">
+        <text class="card-title">本机设置摘要</text>
+        <text class="summary">体重 {{profile.weightKg}} kg</text>
+        <text class="summary">早餐 {{profile.mealWindows.breakfast.start}}–{{profile.mealWindows.breakfast.end}}</text>
+        <text class="summary">午餐 {{profile.mealWindows.lunch.start}}–{{profile.mealWindows.lunch.end}}</text>
+        <text class="summary">晚餐 {{profile.mealWindows.dinner.start}}–{{profile.mealWindows.dinner.end}}</text>
+      </div>
+      <div class="card muted">
+        <text class="card-title">下一里程碑</text>
+        <text class="summary">记餐、运动与历史将在后续里程碑实现。</text>
+      </div>
+      <text class="privacy">数据仅保存在本机</text>
+      <text class="disclaimer">估算，仅供生活管理参考</text>
+      <input class="secondary" type="button" value="修改设置" onclick="edit" />
+      <div class="bottom-space"></div>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import { loadState } from '../../common/state-store'
+
+export default {
+  data: { profile: null, statusMessage: '正在读取本机设置…' },
+  onShow() {
+    loadState(result => {
+      if (result.status === 'ok' && result.state.profile) {
+        this.profile = result.state.profile
+        this.statusMessage = ''
+      } else if (result.status === 'corrupt') {
+        this.profile = null
+        this.statusMessage = '检测到损坏的本地数据，请进入修改设置确认重建。'
+      } else if (result.status === 'unavailable') {
+        this.profile = null
+        this.statusMessage = '本地存储暂不可用，无法读取设置。'
+      } else {
+        this.profile = null
+        this.statusMessage = '尚未保存首次设置。'
+      }
+    })
+  },
+  edit() { router.replace({ uri: '/pages/onboarding' }) }
+}
+</script>
+
+<style>
+.page { width: 100%; height: 100%; background-color: #101311; flex-direction: column; }
+.content { width: 100%; height: 100%; flex-direction: column; padding: 42px 36px 28px 36px; }
+.title { color: #f5f4ed; font-size: 46px; font-weight: bold; text-align: center; margin-bottom: 16px; }
+.status { color: #ffc18a; font-size: 20px; line-height: 28px; text-align: center; margin-bottom: 15px; }
+.hero, .card { width: 100%; flex-direction: column; background-color: #1d231f; border-radius: 28px; padding: 22px; margin-bottom: 16px; }
+.hero { align-items: center; }
+.eyebrow { color: #ff9d45; font-size: 21px; }
+.big { color: #f5f4ed; font-size: 64px; font-weight: bold; }
+.unit { color: #aeb8b1; font-size: 20px; }
+.done { color: #79d69a; font-size: 21px; margin-top: 14px; }
+.card-title { color: #f5f4ed; font-size: 23px; font-weight: bold; margin-bottom: 10px; }
+.summary { color: #cbd2cc; font-size: 20px; line-height: 29px; }
+.muted { background-color: #171c19; }
+.privacy { color: #79d69a; font-size: 20px; text-align: center; margin-top: 4px; }
+.disclaimer { color: #aeb8b1; font-size: 18px; text-align: center; margin: 8px 0 18px 0; }
+.secondary { width: 100%; height: 60px; border-radius: 30px; background-color: #f28a32; color: #17120e; font-size: 23px; }
+.bottom-space { height: 36px; }
+</style>

@@ -6,3 +6,9 @@ out/
 *.elf
 *.hex
 *.map
+
+# Nested quick-app generated output and signing material
+quickapp/*/node_modules/
+quickapp/*/build/
+quickapp/*/dist/
+quickapp/*/sign/
