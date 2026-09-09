@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict'
+import { emptyState, defaultMealWindows, validateState } from '../src/common/state.js'
+import { FOODS } from '../src/data/foods.js'
+import { inferMealType, itemFromFood, addFoodToItems, adjustItem, makeMealRecord, upsertMeal, deleteMeal, todaySummary, syncMealPromptState, updateRecent, addFavorite } from '../src/common/meal-domain.js'
+import { setMealDraft, getMealDraft, clearMealDraft } from '../src/common/meal-draft.js'
+const profile={mealWindows:defaultMealWindows()}
+function localAt(hour,minute){const date=new Date(2026,8,9,hour,minute);return date.getTime()}
+assert.equal(inferMealType(profile,localAt(8,0)),'breakfast');assert.equal(inferMealType(profile,localAt(12,0)),'lunch');assert.equal(inferMealType(profile,localAt(18,0)),'dinner');assert.equal(inferMealType(profile,localAt(23,0)),'snack')
+const rice=FOODS.find(food=>food.id==='staple-rice');let items=addFoodToItems([],rice);items=addFoodToItems(items,rice);assert.equal(items.length,1);assert.equal(items[0].basisAmount,300)
+items=adjustItem(items,0,-1);assert.equal(items[0].basisAmount,250);for(let i=0;i<20;i+=1)items=adjustItem(items,0,-1);assert.equal(items[0].basisAmount,50);items=adjustItem(items,0,1);assert.equal(items[0].basisAmount,100)
+const draft={mealType:'lunch',source:'catalog',items:[itemFromFood(rice)]};const record=makeMealRecord(draft,localAt(12,10));assert.ok(record.id);assert.equal(record.totalKcalSnapshot,174)
+let meals=upsertMeal([],record);assert.equal(meals.length,1);let prompts=syncMealPromptState(emptyState().mealPromptState,meals,record.localDate);assert.equal(prompts.lunch.status,'completed','保存午餐后餐次提示必须同步完成');const edited=Object.assign({},record,{updatedAt:record.updatedAt+1,totalKcalSnapshot:348,items:[Object.assign({},record.items[0],{amount:300,kcalSnapshot:348})]});meals=upsertMeal(meals,edited);assert.equal(meals.length,1);assert.equal(todaySummary(meals,record.localDate).totalKcal,348);assert.equal(todaySummary(meals,record.localDate).status.lunch,'completed');const second=Object.assign({},record,{id:'second-lunch',createdAt:record.createdAt+2,updatedAt:record.updatedAt+2});meals=upsertMeal(meals,second);meals=deleteMeal(meals,record.id);prompts=syncMealPromptState(prompts,meals,record.localDate);assert.equal(prompts.lunch.status,'completed','删除后同餐次仍有记录时必须保持完成');meals=deleteMeal(meals,second.id);prompts=syncMealPromptState(prompts,meals,record.localDate);assert.equal(todaySummary(meals,record.localDate).totalKcal,0);assert.equal(prompts.lunch.status,'pending','删除同餐次最后一条记录后必须回算为待记')
+const ids=FOODS.slice(0,15).map(food=>food.id);const recent=updateRecent(ids,[{foodId:ids[3]},{foodId:ids[14]}]);assert.equal(recent.length,12);assert.equal(new Set(recent).size,12);assert.equal(recent[0],ids[14])
+let favorites=[];for(let i=0;i<10;i+=1){const r=Object.assign({},record,{id:'m'+i,updatedAt:record.updatedAt+i});favorites=addFavorite(favorites,r,r.updatedAt)}assert.equal(favorites.length,8)
+assert.equal(makeMealRecord(Object.assign({},draft,{mealType:'invalid'}),1),null);assert.equal(makeMealRecord(Object.assign({},draft,{source:'voice'}),1),null)
+assert.equal(makeMealRecord(Object.assign({},draft,{items:[{foodId:'unknown-food',basisAmount:100}]}),1),null,'未知食品不得生成可保存记录')
+const state=emptyState();state.meals=[record];state.recentFoodIds=[rice.id];state.favoriteMeals=[addFavorite([],record,record.updatedAt)[0]];assert.equal(validateState(state),true);const bad=JSON.parse(JSON.stringify(state));bad.meals[0].items[0].kcalSnapshot+=1;assert.equal(validateState(bad),false);const badType=JSON.parse(JSON.stringify(state));badType.meals[0].mealType='brunch';assert.equal(validateState(badType),false)
+let writes=0;setMealDraft(draft);assert.equal(getMealDraft(),draft);assert.equal(writes,0,'确认前草稿不得触发存储写入');clearMealDraft();assert.equal(getMealDraft(),null)
+console.log('M2 记餐领域测试通过：增改删、回算、边界、枚举、校验、最近与收藏上限均通过。')

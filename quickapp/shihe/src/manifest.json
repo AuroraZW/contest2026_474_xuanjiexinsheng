@@ -17,7 +17,9 @@
     "pages": {
       "pages/index": { "component": "index" },
       "pages/onboarding": { "component": "onboarding" },
-      "pages/home": { "component": "home" }
+      "pages/home": { "component": "home" },
+      "pages/meal": { "component": "meal" },
+      "pages/confirm": { "component": "confirm" }
     }
   }
 }
