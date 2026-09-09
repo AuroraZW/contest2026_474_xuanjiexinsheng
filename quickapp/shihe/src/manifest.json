@@ -1,0 +1,23 @@
+{
+  "package": "com.openvela.contest2026.team474.shihe",
+  "name": "食衡",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1200,
+  "icon": "/common/logo.png",
+  "simulationVersion": "default",
+  "deviceTypeList": ["watch"],
+  "features": [
+    { "name": "system.router" },
+    { "name": "system.storage" }
+  ],
+  "config": { "logLevel": "log", "designWidth": 480 },
+  "router": {
+    "entry": "pages/index",
+    "pages": {
+      "pages/index": { "component": "index" },
+      "pages/onboarding": { "component": "onboarding" },
+      "pages/home": { "component": "home" }
+    }
+  }
+}
