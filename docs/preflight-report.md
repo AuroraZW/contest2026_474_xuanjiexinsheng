@@ -16,7 +16,7 @@ GitHub 账号：`AuroraZW`
 - 切换比赛 manifest 前已创建快照 `pre-contest-dev-20260901`。
 - manifest 的跟踪分支为 `refs/heads/dev-ai-contest-2026`，当前 manifest 提交为 `015ee80a7c2d3c7c4f3b948107a21244c552345a`。
 - `gh` 登录账号为 `AuroraZW`；上游团队仓权限为 `WRITE`，个人 fork 权限为 `ADMIN`；Git 传输协议为 HTTPS。
-- 提交身份已配置为 `AuroraZW <295313217+AuroraZW@users.noreply.github.com>`，正式提交使用 DCO sign-off。
+- 提交身份已配置为 `AuroraZW <3053750681@qq.com>`，正式提交使用 DCO sign-off。
 
 ## 2. Ubuntu VM 工具链
 
@@ -41,7 +41,7 @@ GitHub 账号：`AuroraZW`
 ## 3. AI Coding 日志
 
 - 采集身份固定为团队 `contest2026_474_xuanjiexinsheng`、GitHub 登录名 `AuroraZW`。
-- 官方 `verify-setup.sh` 结果为 11 passed、0 failed。
+- 在已验证的登录 shell 环境中，官方 `verify-setup.sh` 环境检查结果为 11 passed、0 failed。
 - 已从比赛仓目录启动并正常结束一次 Codex CLI 只读会话，真实日志写入 `logs/AuroraZW/2026-09-02/`。
 - 已在工作区外执行隐私闸门测试，比赛日志数量未变化。
 - `validate-log.py` 对保留的真实日志与 manifest 校验通过。
