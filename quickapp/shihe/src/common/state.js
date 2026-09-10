@@ -47,7 +47,13 @@ function validPromptEntry(entry) {
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 const MEAL_SOURCES = ['catalog', 'recent', 'favorite', 'transcript-demo']
-function validDate(value) { return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) }
+const EXERCISE_METS = { brisk_walk: 3.5, run: 8.0, cycle: 6.8, rope: 10.0, strength: 5.0, yoga: 2.5 }
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parts = value.split('-').map(Number)
+  const date = new Date(parts[0], parts[1] - 1, parts[2])
+  return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2]
+}
 function validId(value) { return typeof value === 'string' && value.length > 0 && value.length <= 120 }
 function validMealItem(item, foodIds) {
   if (!item || !foodIds.includes(item.foodId) || typeof item.nameSnapshot !== 'string' || !item.nameSnapshot) return false
@@ -66,6 +72,16 @@ function validFavorite(favorite, foodIds) {
   if (!favorite || !validId(favorite.id) || typeof favorite.name !== 'string' || !favorite.name) return false
   if (!finiteNumber(favorite.createdAt) || favorite.createdAt <= 0 || !finiteNumber(favorite.updatedAt) || favorite.updatedAt < favorite.createdAt) return false
   return Array.isArray(favorite.items) && favorite.items.length > 0 && favorite.items.every(item => item && foodIds.includes(item.foodId) && finiteNumber(item.amount) && item.amount > 0 && ['g', 'ml'].includes(item.basisUnit))
+}
+function validExercise(record) {
+  if (!record || record.schemaVersion !== 1 || !validId(record.id) || !validDate(record.localDate)) return false
+  if (!Object.prototype.hasOwnProperty.call(EXERCISE_METS, record.activity)) return false
+  if (!finiteNumber(record.metSnapshot) || record.metSnapshot <= 0 || record.metSnapshot > 30) return false
+  if (!finiteNumber(record.weightKgSnapshot) || record.weightKgSnapshot < 25 || record.weightKgSnapshot > 250) return false
+  if (!Number.isInteger(record.durationMinutes) || record.durationMinutes < 1 || record.durationMinutes > 600) return false
+  if (!finiteNumber(record.createdAt) || record.createdAt <= 0 || !finiteNumber(record.updatedAt) || record.updatedAt < record.createdAt) return false
+  const expectedKcal = Math.round(record.metSnapshot * 3.5 * record.weightKgSnapshot / 200 * record.durationMinutes)
+  return Number.isInteger(record.kcalSnapshot) && record.kcalSnapshot === expectedKcal
 }
 
 export function normalizeProfile(profile) {
@@ -101,10 +117,11 @@ export function validateState(state, foods) {
   if (state.profile !== null && !validateProfile(state.profile)) return false
   if (!Array.isArray(state.meals) || !Array.isArray(state.exercises) || !Array.isArray(state.recentFoodIds) || !Array.isArray(state.favoriteMeals)) return false
   if (!state.meals.every(meal => validMeal(meal, foodIds)) || state.meals.some((meal, index) => state.meals.findIndex(other => other.id === meal.id) !== index)) return false
+  if (!state.exercises.every(validExercise) || state.exercises.some((record, index) => state.exercises.findIndex(other => other.id === record.id) !== index)) return false
   if (state.recentFoodIds.length > 12 || !state.recentFoodIds.every((id, index) => foodIds.includes(id) && state.recentFoodIds.indexOf(id) === index)) return false
   if (state.favoriteMeals.length > 8 || !state.favoriteMeals.every(favorite => validFavorite(favorite, foodIds)) || state.favoriteMeals.some((item, index) => state.favoriteMeals.findIndex(other => other.id === item.id) !== index)) return false
   const prompts = state.mealPromptState
-  if (!prompts || typeof prompts !== 'object' || (prompts.localDate !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(prompts.localDate))) return false
+  if (!prompts || typeof prompts !== 'object' || (prompts.localDate !== '' && !validDate(prompts.localDate))) return false
   if (!validPromptEntry(prompts.breakfast) || !validPromptEntry(prompts.lunch) || !validPromptEntry(prompts.dinner)) return false
   if (!finiteNumber(state.lastMaintenanceAt) || state.lastMaintenanceAt < 0) return false
   return true
