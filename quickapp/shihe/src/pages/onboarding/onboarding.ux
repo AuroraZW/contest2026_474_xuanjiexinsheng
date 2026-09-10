@@ -45,8 +45,11 @@
 
 <script>
 import router from '@system.router'
-import { defaultMealWindows, createOnboardedState } from '../../common/state'
+import { FOODS } from '../../data/foods'
+import { defaultMealWindows, createOnboardedState, validateState } from '../../common/state'
 import { loadState, saveState } from '../../common/state-store'
+
+const validateStoredState = state => validateState(state, FOODS)
 
 function timeFromEvent(event) {
   const hour = Number(event.hour)
@@ -69,7 +72,7 @@ export default {
     existingState: null
   },
   onInit() {
-    loadState(result => {
+    loadState(validateStoredState, result => {
       if (result.status === 'ok' && result.state.profile) {
         const profile = result.state.profile
         this.existingState = result.state
@@ -116,7 +119,7 @@ export default {
     state.profile = fresh.profile
     state.lastMaintenanceAt = fresh.lastMaintenanceAt
     this.saving = true
-    saveState(state, result => {
+    saveState(validateStoredState, state, result => {
       this.saving = false
       if (result.status === 'ok') router.replace({ uri: '/pages/home' })
       else this.errorMessage = '保存或读取回验失败，输入仍已保留，请重试'

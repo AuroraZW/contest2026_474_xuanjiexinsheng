@@ -52,7 +52,7 @@ assert.equal(calculateFoodKcal(rice, 150), 174, 'g 热量换算错误')
 assert.equal(calculateFoodKcal(milk, 250), 153, 'ml 热量换算或四舍五入错误')
 
 function parsed(text, itemCount, unknownCount, status) {
-  const output = parseMealText(text)
+  const output = parseMealText(text, FOODS, calculateFoodKcal)
   assert.equal(output.recognizedItems.length, itemCount, text + ' 识别项数量错误')
   assert.equal(output.unknownSegments.length, unknownCount, text + ' 未知项数量错误')
   assert.equal(output.status, status, text + ' 状态错误')
@@ -78,10 +78,10 @@ assert.equal(parsed('米饭、salad', 1, 1, 'needs_review').unknownSegments[0].t
 assert.equal(parsed('米饭、鸡胸肉、苹果、香蕉、橙子、梨、葡萄、西瓜、草莓、猕猴桃、黄瓜、番茄、菠菜', 12, 1, 'needs_review').unknownSegments[0].reason, 'too_many_segments')
 assert.equal(parsed('米'.repeat(MAX_MEAL_TEXT_LENGTH + 1), 0, 1, 'needs_review').unknownSegments[0].reason, 'input_too_long')
 
-const review = parseMealText('一碗米饭、火锅')
+const review = parseMealText('一碗米饭、火锅', FOODS, calculateFoodKcal)
 assert.equal(canSaveParsedMeal(review), false, '未知项未处理时不能保存')
 assert.equal(canSaveParsedMeal(review, ['ignore']), true, '明确忽略后可保存')
-assert.equal(canSaveParsedMeal(parseMealText('火锅'), ['ignore']), false, '没有识别项时不能保存')
+assert.equal(canSaveParsedMeal(parseMealText('火锅', FOODS, calculateFoodKcal), ['ignore']), false, '没有识别项时不能保存')
 assert.equal(canSaveParsedMeal(plan), true, '完整结果应可进入上层确认')
 
 console.log('M2 食品目录与一句话解析器测试通过：60 项，固定语句与保存门禁均通过。')

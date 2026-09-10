@@ -1,13 +1,13 @@
 {
   "name": "shihe-quickapp",
   "version": "1.0.0",
-  "type": "module",
   "description": "食衡 openvela 手表快应用",
   "engines": { "node": ">=8.10" },
   "scripts": {
-    "test": "node test/m2-food-parser.test.mjs && node test/m2-meal-domain.test.mjs",
+    "test": "node --experimental-default-type=module test/m2-food-parser.test.mjs && node --experimental-default-type=module test/m2-meal-domain.test.mjs",
     "start": "aiot start --watch",
-    "build": "aiot build",
+    "build": "aiot build && npm run audit:build",
+    "audit:build": "node scripts/audit-build-modules.mjs",
     "release": "aiot release"
   },
   "devDependencies": {

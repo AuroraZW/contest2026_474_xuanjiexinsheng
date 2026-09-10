@@ -1,5 +1,3 @@
-import { FOODS, calculateFoodKcal } from '../data/foods.js'
-
 export const MEAL_TEXT_PARSER_NAME = '一句话记餐（模拟器转写模式）'
 export const MAX_MEAL_TEXT_LENGTH = 80
 export const MAX_MEAL_SEGMENTS = 12
@@ -40,7 +38,7 @@ function aliasesByLength(foods) {
   return entries.sort(function (a, b) { return b.name.length - a.name.length })
 }
 
-function parseSegment(segment, aliases) {
+function parseSegment(segment, aliases, calculateFoodKcal) {
   if (NEGATION.test(segment)) return { unknown: fragment(segment, 'negation') }
   let matched = null
   let quantityText = ''
@@ -62,7 +60,7 @@ function parseSegment(segment, aliases) {
   if (!quantityText) {
     const serving = matched.food.defaultServing
     const basisAmount = serving.amount * matched.food.parseUnits[serving.unit]
-    return { item: makeItem(matched.food, serving.amount, serving.unit, basisAmount, true) }
+    return { item: makeItem(calculateFoodKcal, matched.food, serving.amount, serving.unit, basisAmount, true) }
   }
 
   const quantityMatch = new RegExp('^(' + NUMBER_TEXT + ')([^\\d零〇一二两三四五六七八九十百半]+)$').exec(quantityText)
@@ -71,10 +69,10 @@ function parseSegment(segment, aliases) {
   const unit = quantityMatch[2].toLowerCase()
   if (!(unit in matched.food.parseUnits)) return { unknown: fragment(segment, 'unsupported_unit') }
   if (!isFinite(amount) || amount <= 0) return { unknown: fragment(segment, 'invalid_quantity') }
-  return { item: makeItem(matched.food, amount, unit, amount * matched.food.parseUnits[unit], false) }
+  return { item: makeItem(calculateFoodKcal, matched.food, amount, unit, amount * matched.food.parseUnits[unit], false) }
 }
 
-function makeItem(food, amount, unit, basisAmount, usedDefaultServing) {
+function makeItem(calculateFoodKcal, food, amount, unit, basisAmount, usedDefaultServing) {
   return {
     foodId: food.id,
     name: food.name,
@@ -89,8 +87,8 @@ function makeItem(food, amount, unit, basisAmount, usedDefaultServing) {
   }
 }
 
-export function parseMealText(input, foods) {
-  const catalog = foods || FOODS
+export function parseMealText(input, foods, calculateFoodKcal) {
+  const catalog = foods
   if (typeof input !== 'string' || !input.trim()) return result('empty', [], [])
   const text = input.trim()
   if (text.length > MAX_MEAL_TEXT_LENGTH) return result('needs_review', [], [fragment(text, 'input_too_long')])
@@ -104,7 +102,7 @@ export function parseMealText(input, foods) {
       unknown.push(fragment(segment, 'too_many_segments'))
       return
     }
-    const parsed = parseSegment(segment, aliases)
+    const parsed = parseSegment(segment, aliases, calculateFoodKcal)
     if (parsed.item) recognized.push(parsed.item)
     else unknown.push(parsed.unknown)
   })

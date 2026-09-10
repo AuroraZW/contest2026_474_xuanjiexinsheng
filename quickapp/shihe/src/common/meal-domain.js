@@ -1,5 +1,3 @@
-import { FOODS, calculateFoodKcal } from '../data/foods.js'
-
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 export const MEAL_SOURCES = ['catalog', 'recent', 'favorite', 'transcript-demo']
 
@@ -27,8 +25,8 @@ export function inferMealType(profile, timestamp) {
   return 'snack'
 }
 
-export function foodById(foodId) {
-  return FOODS.find(food => food.id === foodId)
+export function foodById(foods, foodId) {
+  return foods.find(food => food.id === foodId)
 }
 
 function stepFor(food) {
@@ -36,7 +34,7 @@ function stepFor(food) {
   return 50
 }
 
-export function itemFromFood(food, basisAmount) {
+export function itemFromFood(calculateFoodKcal, food, basisAmount) {
   const amount = basisAmount === undefined
     ? food.defaultServing.amount * food.parseUnits[food.defaultServing.unit]
     : basisAmount
@@ -51,9 +49,9 @@ export function itemFromFood(food, basisAmount) {
   }
 }
 
-export function addFoodToItems(items, food, basisAmount) {
+export function addFoodToItems(calculateFoodKcal, items, food, basisAmount) {
   const next = items.map(item => Object.assign({}, item))
-  const added = itemFromFood(food, basisAmount)
+  const added = itemFromFood(calculateFoodKcal, food, basisAmount)
   const existing = next.find(item => item.foodId === food.id)
   if (existing) {
     existing.basisAmount += added.basisAmount
@@ -62,11 +60,11 @@ export function addFoodToItems(items, food, basisAmount) {
   return next
 }
 
-export function adjustItem(items, index, direction) {
+export function adjustItem(foods, calculateFoodKcal, items, index, direction) {
   if (!Array.isArray(items) || index < 0 || index >= items.length) return items || []
   const next = items.map(item => Object.assign({}, item))
   const item = next[index]
-  const food = foodById(item.foodId)
+  const food = foodById(foods, item.foodId)
   if (!food) return items
   const amount = item.basisAmount + (direction < 0 ? -item.step : item.step)
   item.basisAmount = Math.max(item.step, amount)
@@ -78,13 +76,45 @@ export function totalItemsKcal(items) {
   return (items || []).reduce((total, item) => total + item.kcal, 0)
 }
 
-export function makeMealRecord(draft, now) {
+export function serializeMealDraft(draft) {
+  return JSON.stringify(draft)
+}
+
+export function parseMealDraft(draftJson, foods, calculateFoodKcal) {
+  try {
+    const draft = JSON.parse(draftJson)
+    if (!draft || !MEAL_TYPES.includes(draft.mealType) || !MEAL_SOURCES.includes(draft.source) || !Array.isArray(draft.items) || !draft.items.length) return null
+    const items = draft.items.map(item => {
+      const food = item && foodById(foods, item.foodId)
+      if (!food || typeof item.basisAmount !== 'number' || !isFinite(item.basisAmount) || item.basisAmount <= 0) throw new Error('invalid draft item')
+      return itemFromFood(calculateFoodKcal, food, item.basisAmount)
+    })
+    const parsed = { mealType: draft.mealType, source: draft.source, items }
+    if (draft.recordId !== undefined) {
+      if (typeof draft.recordId !== 'string' || !draft.recordId) return null
+      parsed.recordId = draft.recordId
+    }
+    if (draft.localDate !== undefined) {
+      if (typeof draft.localDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(draft.localDate)) return null
+      parsed.localDate = draft.localDate
+    }
+    if (draft.createdAt !== undefined) {
+      if (typeof draft.createdAt !== 'number' || !isFinite(draft.createdAt) || draft.createdAt <= 0) return null
+      parsed.createdAt = draft.createdAt
+    }
+    return parsed
+  } catch (error) {
+    return null
+  }
+}
+
+export function makeMealRecord(foods, calculateFoodKcal, draft, now) {
   if (!draft || !MEAL_TYPES.includes(draft.mealType) || !MEAL_SOURCES.includes(draft.source) || !draft.items || !draft.items.length) return null
   const timestamp = now || Date.now()
   const items = []
   for (let i = 0; i < draft.items.length; i += 1) {
     const item = draft.items[i]
-    const food = item && foodById(item.foodId)
+    const food = item && foodById(foods, item.foodId)
     if (!food || typeof item.basisAmount !== 'number' || !isFinite(item.basisAmount) || item.basisAmount <= 0) return null
     items.push({
       foodId: food.id,
@@ -157,10 +187,10 @@ export function addFavorite(favorites, record, now) {
   return [favorite].concat((favorites || []).filter(item => item.id !== favorite.id)).slice(0, 8)
 }
 
-export function draftFromRecord(record) {
+export function draftFromRecord(foods, calculateFoodKcal, record) {
   return {
     recordId: record.id, createdAt: record.createdAt, localDate: record.localDate,
     mealType: record.mealType, source: record.source,
-    items: record.items.map(item => itemFromFood(foodById(item.foodId), item.amount))
+    items: record.items.map(item => itemFromFood(calculateFoodKcal, foodById(foods, item.foodId), item.amount))
   }
 }

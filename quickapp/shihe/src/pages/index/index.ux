@@ -7,14 +7,18 @@
 
 <script>
 import router from '@system.router'
+import { FOODS } from '../../data/foods'
+import { validateState } from '../../common/state'
 import { loadState } from '../../common/state-store'
+
+const validateStoredState = state => validateState(state, FOODS)
 
 export default {
   data: { started: false, navigated: false },
   onInit() {
     if (this.started) return
     this.started = true
-    loadState(result => {
+    loadState(validateStoredState, result => {
       if (this.navigated) return
       this.navigated = true
       if (result.status === 'ok' && result.state.profile) {
