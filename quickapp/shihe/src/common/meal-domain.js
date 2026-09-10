@@ -169,6 +169,57 @@ export function syncMealPromptState(promptState, meals, localDate) {
   return next
 }
 
+export function activeMealType(profile, timestamp) {
+  const windows = profile && profile.mealWindows
+  if (!windows) return null
+  const date = new Date(timestamp)
+  const pad = value => (value < 10 ? '0' : '') + value
+  const time = pad(date.getHours()) + ':' + pad(date.getMinutes())
+  const order = ['breakfast', 'lunch', 'dinner']
+  for (let i = 0; i < order.length; i += 1) {
+    const window = windows[order[i]]
+    if (window && time >= window.start && time <= window.end) return order[i]
+  }
+  return null
+}
+
+export function mealCapsuleView(profile, meals, promptState, timestamp) {
+  const mealType = activeMealType(profile, timestamp)
+  if (!mealType) return { visibility: 'hidden', mealType: null }
+  const localDate = localDateOf(timestamp)
+  const synced = syncMealPromptState(promptState, meals, localDate)
+  const records = (meals || []).filter(meal => meal.localDate === localDate && meal.mealType === mealType)
+  if (records.length) {
+    return {
+      visibility: 'collapsed', status: 'completed', mealType,
+      kcal: records.reduce((sum, meal) => sum + meal.totalKcalSnapshot, 0)
+    }
+  }
+  const entry = synced[mealType]
+  if (entry.status === 'later' && entry.remindAt > timestamp) return { visibility: 'collapsed', status: 'later', mealType, remindAt: entry.remindAt }
+  if (entry.status === 'skipped') return { visibility: 'collapsed', status: 'skipped', mealType }
+  return { visibility: 'expanded', status: 'pending', mealType, actions: ['record', 'later', 'skip'] }
+}
+
+function updateActivePrompt(profile, meals, promptState, timestamp, entry) {
+  const mealType = activeMealType(profile, timestamp)
+  if (!mealType) return { changed: false, mealType: null, promptState }
+  const localDate = localDateOf(timestamp)
+  const synced = syncMealPromptState(promptState, meals, localDate)
+  if (synced[mealType].status === 'completed') return { changed: false, mealType, promptState: synced }
+  const next = Object.assign({}, synced)
+  next[mealType] = entry
+  return { changed: true, mealType, promptState: next }
+}
+
+export function setActiveMealLater(profile, meals, promptState, timestamp) {
+  return updateActivePrompt(profile, meals, promptState, timestamp, { status: 'later', remindAt: timestamp + 15 * 60 * 1000 })
+}
+
+export function skipActiveMeal(profile, meals, promptState, timestamp) {
+  return updateActivePrompt(profile, meals, promptState, timestamp, { status: 'skipped' })
+}
+
 export function updateRecent(recentFoodIds, items) {
   const ids = (items || []).map(item => item.foodId).reverse()
   return ids.concat(recentFoodIds || []).filter((id, index, all) => all.indexOf(id) === index).slice(0, 12)
