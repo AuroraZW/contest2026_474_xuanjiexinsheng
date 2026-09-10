@@ -4,9 +4,20 @@ import path from 'node:path'
 
 const pagesRoot = path.resolve('build/pages')
 const sourcePagesRoot = path.resolve('src/pages')
+const healthAdviceSource = await readFile(path.resolve('src/common/health-advice.js'), 'utf8')
+const healthServiceSource = await readFile(path.resolve('src/services/health-service.js'), 'utf8')
 const manifest = JSON.parse(await readFile(path.resolve('src/manifest.json'), 'utf8'))
 const manifestPages = manifest.router && manifest.router.pages
 assert.ok(manifestPages && typeof manifestPages === 'object', 'manifest router.pages 必须存在')
+assert.ok(Array.isArray(manifest.features) && manifest.features.some(item => item && item.name === 'service.health'), 'manifest 必须声明 service.health feature')
+assert.ok(Array.isArray(manifest.permissions) && manifest.permissions.some(item => item && item.name === 'hapjs.permission.HEALTH'), 'manifest 必须声明 HEALTH permission')
+const backgroundFeatures = manifest.config && manifest.config.background && manifest.config.background.features
+assert.ok(!Array.isArray(backgroundFeatures) || !backgroundFeatures.includes('service.health'), '不得声明后台 service.health')
+assert.match(healthAdviceSource, /当前设备暂不支持/, 'health 状态必须包含明确不支持文案')
+assert.match(healthAdviceSource, /健康数据暂时读取失败/, 'health 状态必须包含读取错误文案')
+assert.match(healthAdviceSource, /暂无有效健康数据/, 'health 状态必须包含无效样本文案')
+assert.match(healthServiceSource, /status: healthFailureStatus\(code\)/, 'health fail 必须通过已测试的错误码映射')
+assert.match(healthServiceSource, /status: 'invalid-sample'/, 'health callback 无效样本必须独立标记')
 const routes = Object.entries(manifestPages)
 const expectedPageCount = routes.length
 
@@ -52,6 +63,20 @@ for (const file of sourcePageFiles) {
   assert.ok(!(hasData && hasAccessFields), path.relative(process.cwd(), file) + ' 不得混用 data 与访问器字段')
   if (path.basename(file) === 'history.ux') {
     assert.match(source, /\bfor="\(index, day\) in days"/, 'history.ux 必须使用显式 day 循环变量')
+    assert.match(source, /餐食摄入/, 'history.ux 必须明确餐食摄入来源')
+    assert.match(source, /补录消耗/, 'history.ux 必须明确补录运动消耗来源')
+  }
+  if (path.basename(file) === 'home.ux') {
+    assert.match(source, /\$canIUse\('@service\.health'\)/, 'home.ux 必须在订阅前探测 service.health 能力')
+    assert.match(source, /onHide\s*\(\)\s*\{[^}]*stopHealth\s*\(/, 'home.ux onHide 必须清理健康订阅')
+    assert.match(source, /onDestroy\s*\(\)\s*\{[^}]*stopHealth\s*\(/, 'home.ux onDestroy 必须清理健康订阅')
+    assert.match(source, /来自系统健康接口；比赛模拟器中为官方 Mock/, 'home.ux 必须说明健康数据系统接口与比赛 Mock 来源')
+    assert.match(source, /仅展示，不用于热量计算或诊断/, 'home.ux 必须声明健康数据用途边界')
+    assert.match(source, /补录消耗 kcal/, 'home.ux 必须明确运动消耗来自补录')
+  }
+  if (path.basename(file) === 'exercise.ux') {
+    assert.match(source, /手动补录 · MET 估算/, 'exercise.ux 必须明确手动补录与 MET 估算来源')
+    assert.match(source, /今日补录消耗/, 'exercise.ux 必须明确当日补录消耗')
   }
 }
 
@@ -76,4 +101,4 @@ for (const file of files) {
 }
 
 assert.deepEqual(failures, [], '页面包模块审计失败: ' + failures.join(', '))
-console.log(`页面审计通过：${expectedPageCount} 页均有 manifest 对应源文件且未混用 data/访问器字段，页面包数量一致、无项目相对 require，且本地模块均写入 wrapper exports。`)
+console.log(`页面审计通过：${expectedPageCount} 页及模块打包正常；health 声明、能力探测、前台生命周期及健康/补录来源文案均符合要求。`)
