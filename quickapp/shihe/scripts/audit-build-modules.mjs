@@ -4,6 +4,11 @@ import path from 'node:path'
 
 const pagesRoot = path.resolve('build/pages')
 const sourcePagesRoot = path.resolve('src/pages')
+const manifest = JSON.parse(await readFile(path.resolve('src/manifest.json'), 'utf8'))
+const manifestPages = manifest.router && manifest.router.pages
+assert.ok(manifestPages && typeof manifestPages === 'object', 'manifest router.pages 必须存在')
+const routes = Object.entries(manifestPages)
+const expectedPageCount = routes.length
 
 async function waitForDirectory(directory, attempts = 30, intervalMs = 100) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -33,17 +38,21 @@ async function javascriptFiles(directory) {
 
 await waitForDirectory(pagesRoot)
 const files = await javascriptFiles(pagesRoot)
-assert.equal(files.length, 5, '应生成五个页面 JavaScript 包')
+assert.equal(files.length, expectedPageCount, `应生成 ${expectedPageCount} 个页面 JavaScript 包`)
 
-const sourcePageFiles = (await readdir(sourcePagesRoot, { withFileTypes: true }))
-  .filter(entry => entry.isDirectory())
-  .map(entry => path.join(sourcePagesRoot, entry.name, entry.name + '.ux'))
-assert.equal(sourcePageFiles.length, 5, '应审计五个页面源文件')
+const sourcePageFiles = routes.map(([route, config]) => {
+  assert.ok(config && typeof config.component === 'string' && config.component, `${route} 必须声明 component`)
+  const lastSegment = route.split('/').filter(Boolean).pop()
+  return path.join(sourcePagesRoot, lastSegment, config.component + '.ux')
+})
 for (const file of sourcePageFiles) {
   const source = await readFile(file, 'utf8')
   const hasData = /\bdata\s*:\s*\{/.test(source)
   const hasAccessFields = /\b(?:public|protected|private)\s*:\s*\{/.test(source)
   assert.ok(!(hasData && hasAccessFields), path.relative(process.cwd(), file) + ' 不得混用 data 与访问器字段')
+  if (path.basename(file) === 'history.ux') {
+    assert.match(source, /\bfor="\(index, day\) in days"/, 'history.ux 必须使用显式 day 循环变量')
+  }
 }
 
 const failures = []
@@ -67,4 +76,4 @@ for (const file of files) {
 }
 
 assert.deepEqual(failures, [], '页面包模块审计失败: ' + failures.join(', '))
-console.log('页面审计通过：五页未混用 data/访问器字段，页面包无项目相对 require，且本地模块均写入 wrapper exports。')
+console.log(`页面审计通过：${expectedPageCount} 页均有 manifest 对应源文件且未混用 data/访问器字段，页面包数量一致、无项目相对 require，且本地模块均写入 wrapper exports。`)

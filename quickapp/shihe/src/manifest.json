@@ -19,7 +19,9 @@
       "pages/onboarding": { "component": "onboarding" },
       "pages/home": { "component": "home" },
       "pages/meal": { "component": "meal" },
-      "pages/confirm": { "component": "confirm" }
+      "pages/confirm": { "component": "confirm" },
+      "pages/exercise": { "component": "exercise" },
+      "pages/history": { "component": "history" }
     }
   }
 }
