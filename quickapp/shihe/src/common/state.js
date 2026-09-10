@@ -1,5 +1,3 @@
-import { FOODS } from '../data/foods.js'
-
 export const STATE_SCHEMA_VERSION = 1
 
 export function defaultMealWindows() {
@@ -47,28 +45,27 @@ function validPromptEntry(entry) {
   return !hasRemindAt || (finiteNumber(entry.remindAt) && entry.remindAt > 0)
 }
 
-const FOOD_IDS = FOODS.map(item => item.id)
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 const MEAL_SOURCES = ['catalog', 'recent', 'favorite', 'transcript-demo']
 function validDate(value) { return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) }
 function validId(value) { return typeof value === 'string' && value.length > 0 && value.length <= 120 }
-function validMealItem(item) {
-  if (!item || !FOOD_IDS.includes(item.foodId) || typeof item.nameSnapshot !== 'string' || !item.nameSnapshot) return false
+function validMealItem(item, foodIds) {
+  if (!item || !foodIds.includes(item.foodId) || typeof item.nameSnapshot !== 'string' || !item.nameSnapshot) return false
   if (!finiteNumber(item.amount) || item.amount <= 0 || !['g', 'ml'].includes(item.basisUnit)) return false
   if (!finiteNumber(item.energyKcalPer100Snapshot) || item.energyKcalPer100Snapshot < 0) return false
   return Number.isInteger(item.kcalSnapshot) && item.kcalSnapshot === Math.round(item.energyKcalPer100Snapshot * item.amount / 100)
 }
-function validMeal(meal) {
+function validMeal(meal, foodIds) {
   if (!meal || meal.schemaVersion !== 1 || !validId(meal.id) || !validDate(meal.localDate)) return false
   if (!MEAL_TYPES.includes(meal.mealType) || !MEAL_SOURCES.includes(meal.source)) return false
   if (!finiteNumber(meal.createdAt) || meal.createdAt <= 0 || !finiteNumber(meal.updatedAt) || meal.updatedAt < meal.createdAt) return false
-  if (!Array.isArray(meal.items) || !meal.items.length || !meal.items.every(validMealItem)) return false
+  if (!Array.isArray(meal.items) || !meal.items.length || !meal.items.every(item => validMealItem(item, foodIds))) return false
   return Number.isInteger(meal.totalKcalSnapshot) && meal.totalKcalSnapshot === meal.items.reduce((sum, item) => sum + item.kcalSnapshot, 0)
 }
-function validFavorite(favorite) {
+function validFavorite(favorite, foodIds) {
   if (!favorite || !validId(favorite.id) || typeof favorite.name !== 'string' || !favorite.name) return false
   if (!finiteNumber(favorite.createdAt) || favorite.createdAt <= 0 || !finiteNumber(favorite.updatedAt) || favorite.updatedAt < favorite.createdAt) return false
-  return Array.isArray(favorite.items) && favorite.items.length > 0 && favorite.items.every(item => item && FOOD_IDS.includes(item.foodId) && finiteNumber(item.amount) && item.amount > 0 && ['g', 'ml'].includes(item.basisUnit))
+  return Array.isArray(favorite.items) && favorite.items.length > 0 && favorite.items.every(item => item && foodIds.includes(item.foodId) && finiteNumber(item.amount) && item.amount > 0 && ['g', 'ml'].includes(item.basisUnit))
 }
 
 export function normalizeProfile(profile) {
@@ -97,13 +94,15 @@ export function validateProfile(profile) {
   return normalizeProfile(profile) !== null
 }
 
-export function validateState(state) {
+export function validateState(state, foods) {
+  if (!Array.isArray(foods)) return false
+  const foodIds = foods.map(item => item.id)
   if (!state || state.schemaVersion !== STATE_SCHEMA_VERSION) return false
   if (state.profile !== null && !validateProfile(state.profile)) return false
   if (!Array.isArray(state.meals) || !Array.isArray(state.exercises) || !Array.isArray(state.recentFoodIds) || !Array.isArray(state.favoriteMeals)) return false
-  if (!state.meals.every(validMeal) || state.meals.some((meal, index) => state.meals.findIndex(other => other.id === meal.id) !== index)) return false
-  if (state.recentFoodIds.length > 12 || !state.recentFoodIds.every((id, index) => FOOD_IDS.includes(id) && state.recentFoodIds.indexOf(id) === index)) return false
-  if (state.favoriteMeals.length > 8 || !state.favoriteMeals.every(validFavorite) || state.favoriteMeals.some((item, index) => state.favoriteMeals.findIndex(other => other.id === item.id) !== index)) return false
+  if (!state.meals.every(meal => validMeal(meal, foodIds)) || state.meals.some((meal, index) => state.meals.findIndex(other => other.id === meal.id) !== index)) return false
+  if (state.recentFoodIds.length > 12 || !state.recentFoodIds.every((id, index) => foodIds.includes(id) && state.recentFoodIds.indexOf(id) === index)) return false
+  if (state.favoriteMeals.length > 8 || !state.favoriteMeals.every(favorite => validFavorite(favorite, foodIds)) || state.favoriteMeals.some((item, index) => state.favoriteMeals.findIndex(other => other.id === item.id) !== index)) return false
   const prompts = state.mealPromptState
   if (!prompts || typeof prompts !== 'object' || (prompts.localDate !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(prompts.localDate))) return false
   if (!validPromptEntry(prompts.breakfast) || !validPromptEntry(prompts.lunch) || !validPromptEntry(prompts.dinner)) return false

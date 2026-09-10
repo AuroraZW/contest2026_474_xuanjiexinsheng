@@ -1,9 +1,8 @@
 import storage from '@system.storage'
-import { validateState } from './state'
 
 export const STORAGE_KEY = 'shihe_state_v1'
 
-export function loadState(done) {
+export function loadState(validateState, done) {
   let completed = false
   const finish = result => {
     if (completed) return
@@ -34,7 +33,7 @@ export function loadState(done) {
   }
 }
 
-export function saveState(state, done) {
+export function saveState(validateState, state, done) {
   let completed = false
   const finish = result => {
     if (completed) return
@@ -57,7 +56,7 @@ export function saveState(state, done) {
       key: STORAGE_KEY,
       value: serialized,
       success() {
-        loadState(result => {
+        loadState(validateState, result => {
           if (result.status === 'ok' && JSON.stringify(result.state) === serialized) finish({ status: 'ok' })
           else finish({ status: 'verify-failed' })
         })
