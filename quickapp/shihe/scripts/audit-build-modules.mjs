@@ -7,10 +7,13 @@ const sourcePagesRoot = path.resolve('src/pages')
 const healthAdviceSource = await readFile(path.resolve('src/common/health-advice.js'), 'utf8')
 const healthServiceSource = await readFile(path.resolve('src/services/health-service.js'), 'utf8')
 const healthWatchdogSource = await readFile(path.resolve('src/common/no-response-watchdog.js'), 'utf8')
+const aiAdviceSource = await readFile(path.resolve('src/common/ai-advice.js'), 'utf8')
+const velaclawServiceSource = await readFile(path.resolve('src/services/velaclaw-service.js'), 'utf8')
 const manifest = JSON.parse(await readFile(path.resolve('src/manifest.json'), 'utf8'))
 const manifestPages = manifest.router && manifest.router.pages
 assert.ok(manifestPages && typeof manifestPages === 'object', 'manifest router.pages 必须存在')
 assert.ok(Array.isArray(manifest.features) && manifest.features.some(item => item && item.name === 'service.health'), 'manifest 必须声明 service.health feature')
+assert.ok(manifest.features.some(item => item && item.name === 'system.velaclaw'), 'manifest 必须声明 system.velaclaw feature')
 assert.ok(Array.isArray(manifest.permissions) && manifest.permissions.some(item => item && item.name === 'hapjs.permission.HEALTH'), 'manifest 必须声明 HEALTH permission')
 const backgroundFeatures = manifest.config && manifest.config.background && manifest.config.background.features
 assert.ok(!Array.isArray(backgroundFeatures) || !backgroundFeatures.includes('service.health'), '不得声明后台 service.health')
@@ -29,6 +32,11 @@ assert.match(healthServiceSource, /status: 'read-error', reason: 'no-response'/,
 assert.match(healthServiceSource, /callback: sample => \{\s*responseWatchdogs\.clear\(entry\.kind\)/, 'health sample 必须清理对应看门狗')
 assert.match(healthServiceSource, /fail: \(data, code\) => \{\s*responseWatchdogs\.clear\(entry\.kind\)/, 'health fail 必须清理对应看门狗')
 assert.match(healthServiceSource, /unsubscribeAllHealth\(\) \{\s*responseWatchdogs\.clearAll\(\)/, 'health 退订必须清理全部看门狗')
+assert.match(velaclawServiceSource, /import velaclaw from '@system\.velaclaw'/, 'VelaClaw 必须使用官方系统模块导入')
+assert.match(velaclawServiceSource, /requestAiAdvice\(velaclaw, query, onResult\)/, 'VelaClaw 服务必须经过安全适配器')
+assert.match(aiAdviceSource, /!api \|\| typeof api\.ask !== 'function'/, 'VelaClaw 适配器必须保护模块及 ask 缺失')
+assert.match(aiAdviceSource, /AI_ADVICE_TIMEOUT_MS\s*=\s*10000/, 'VelaClaw 应用层超时必须为 10 秒')
+assert.match(aiAdviceSource, /try \{[\s\S]*api\.ask\(\{/, 'VelaClaw ask 必须保护同步抛错')
 const routes = Object.entries(manifestPages)
 const expectedPageCount = routes.length
 
@@ -84,6 +92,13 @@ for (const file of sourcePageFiles) {
     assert.match(source, /来自系统健康接口；比赛模拟器中为官方 Mock/, 'home.ux 必须说明健康数据系统接口与比赛 Mock 来源')
     assert.match(source, /仅展示，不用于热量计算或诊断/, 'home.ux 必须声明健康数据用途边界')
     assert.match(source, /补录消耗 kcal/, 'home.ux 必须明确运动消耗来自补录')
+    assert.match(source, /今日小建议/, 'home.ux 必须始终保留本地建议卡')
+    assert.match(source, /将发送给端侧 AI/, 'home.ux 必须展示实际发送摘要预览')
+    assert.match(source, /取消/, 'home.ux AI 预览必须提供取消入口')
+    assert.match(source, /确认发送/, 'home.ux AI 预览必须提供确认入口')
+    assert.match(source, /onHide\s*\(\)\s*\{[^}]*cancelAiRequest\s*\(/, 'home.ux onHide 必须取消 AI 请求')
+    assert.match(source, /onDestroy\s*\(\)\s*\{[^}]*cancelAiRequest\s*\(/, 'home.ux onDestroy 必须取消 AI 请求')
+    assert.match(source, /AI 暂不可用，已保留本地建议/, 'home.ux 必须明确展示 AI 回退文案')
   }
   if (path.basename(file) === 'exercise.ux') {
     assert.match(source, /手动补录 · MET 估算/, 'exercise.ux 必须明确手动补录与 MET 估算来源')

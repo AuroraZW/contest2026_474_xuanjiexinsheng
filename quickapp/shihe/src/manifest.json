@@ -10,7 +10,8 @@
   "features": [
     { "name": "system.router" },
     { "name": "system.storage" },
-    { "name": "service.health" }
+    { "name": "service.health" },
+    { "name": "system.velaclaw" }
   ],
   "permissions": [
     { "name": "hapjs.permission.HEALTH" }
