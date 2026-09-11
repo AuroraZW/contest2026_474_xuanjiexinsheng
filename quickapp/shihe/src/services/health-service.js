@@ -4,32 +4,53 @@ import { createNoResponseWatchdogs } from '../common/no-response-watchdog'
 
 const subscriptions = { heartRate: false, spo2: false, stress: false }
 const responseWatchdogs = createNoResponseWatchdogs()
+const healthKinds = ['heartRate', 'spo2', 'stress']
 
-function entries() {
+function healthApi() {
+  if (!health || !health.DATA_TYPES) return null
+  if (typeof health.subscribeSample !== 'function' || typeof health.unsubscribeSample !== 'function') return null
+  const dataTypes = health.DATA_TYPES
+  if (dataTypes.HEART_RATE == null || dataTypes.SPO2 == null || dataTypes.STRESS == null) return null
+  return { service: health, dataTypes }
+}
+
+function entries(dataTypes) {
   return [
-    { kind: 'heartRate', dataType: health.DATA_TYPES.HEART_RATE },
-    { kind: 'spo2', dataType: health.DATA_TYPES.SPO2 },
-    { kind: 'stress', dataType: health.DATA_TYPES.STRESS }
+    { kind: 'heartRate', dataType: dataTypes.HEART_RATE },
+    { kind: 'spo2', dataType: dataTypes.SPO2 },
+    { kind: 'stress', dataType: dataTypes.STRESS }
   ]
 }
 
 export function unsubscribeAllHealth() {
   responseWatchdogs.clearAll()
-  entries().forEach(entry => {
+  const api = healthApi()
+  if (!api) {
+    healthKinds.forEach(kind => { subscriptions[kind] = false })
+    return
+  }
+  entries(api.dataTypes).forEach(entry => {
     if (!subscriptions[entry.kind]) return
     subscriptions[entry.kind] = false
-    try { health.unsubscribeSample({ dataType: entry.dataType }) } catch (error) {}
+    try { api.service.unsubscribeSample({ dataType: entry.dataType }) } catch (error) {}
   })
 }
 
 export function subscribeAllHealth(onSample, onState) {
   unsubscribeAllHealth()
-  entries().forEach(entry => {
+  const api = healthApi()
+  if (!api) {
+    healthKinds.forEach(kind => {
+      onState(kind, { status: 'unsupported', reason: 'feature-missing' })
+    })
+    return
+  }
+  entries(api.dataTypes).forEach(entry => {
     responseWatchdogs.start(entry.kind, () => {
       onState(entry.kind, { status: 'read-error', reason: 'no-response' })
     })
     try {
-      health.subscribeSample({
+      api.service.subscribeSample({
         dataType: entry.dataType,
         callback: sample => {
           responseWatchdogs.clear(entry.kind)
