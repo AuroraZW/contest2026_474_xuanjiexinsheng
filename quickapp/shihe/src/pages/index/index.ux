@@ -1,7 +1,18 @@
 <template>
   <div class="page">
-    <text class="brand">食衡</text>
-    <text class="loading">正在读取本机设置…</text>
+    <div class="loading-view" if="{{!verificationMode}}"><text class="brand">食衡</text><text class="loading">正在读取本机设置…</text></div>
+    <scroll class="verification" scroll-y="true" if="{{verificationMode}}">
+      <text class="mode-label">OPENVELA 验证模式</text><text class="title">食衡 · 能力验证</text>
+      <div class="notice-card"><text class="card-title">当前 goldfish 缺少多页路由</text><text class="body-copy">本环境运行时未注册 system.router，因此无法进入食衡的七页流程。完整体验请在 AIoT 比赛模拟器验证。</text><text class="boundary">此模式不提供本地记餐操作。</text></div>
+      <div class="advice-card"><text class="card-title">固定本地建议</text><text class="advice-copy">规律安排三餐，适量活动，并按身体感受调整今天的节奏。</text><text class="source-note">本地固定内容 · 仅供生活管理参考</text></div>
+      <div class="ai-card"><text class="card-title">VelaClaw 无 Key 降级验证</text>
+        <input class="ai-entry" if="{{aiStage === 'idle'}}" type="button" value="生成 AI 建议" onclick="previewAiAdvice"/>
+        <div class="ai-preview" if="{{aiStage === 'preview'}}"><text class="preview-label">将发送给端侧 AI（全零脱敏当天汇总）</text><text class="preview-copy">{{aiPreview}}</text><div class="ai-actions"><input class="small" type="button" value="取消" onclick="cancelAiAdvice"/><input class="small confirm" type="button" value="确认发送" onclick="confirmAiAdvice"/></div></div>
+        <text class="ai-status" if="{{aiStage === 'loading'}}">生成中，请稍候…</text>
+        <div if="{{aiStage === 'success'}}"><text class="advice-copy">{{aiReply}}</text><text class="source-note">VelaClaw 生成 · 不会持久化</text></div>
+        <div if="{{aiStage === 'failed'}}"><text class="failure">{{aiMessage}}</text><input class="ai-entry retry" type="button" value="重新生成" onclick="previewAiAdvice"/></div>
+      </div>
+    </scroll>
   </div>
 </template>
 
@@ -10,14 +21,21 @@ import router from '@system.router'
 import { FOODS } from '../../data/foods'
 import { validateState } from '../../common/state'
 import { loadState } from '../../common/state-store'
+import { buildAiAdviceSummary } from '../../common/ai-advice'
+import { askVelaclaw } from '../../services/velaclaw-service'
 
 const validateStoredState = state => validateState(state, FOODS)
+const hasRouterReplace = candidate => !!candidate && typeof candidate.replace === 'function'
 
 export default {
-  data: { started: false, navigated: false },
+  data: { started: false, navigated: false, verificationMode: false, aiStage: 'idle', aiPreview: '', aiReply: '', aiMessage: '', aiCancel: null, aiSession: 0 },
   onInit() {
     if (this.started) return
     this.started = true
+    if (!hasRouterReplace(router)) {
+      this.verificationMode = true
+      return
+    }
     loadState(validateStoredState, result => {
       if (this.navigated) return
       this.navigated = true
@@ -25,17 +43,35 @@ export default {
         router.replace({ uri: '/pages/home' })
         return
       }
-      router.replace({
-        uri: '/pages/onboarding',
-        params: { storageStatus: result.status }
-      })
+      router.replace({ uri: '/pages/onboarding', params: { storageStatus: result.status } })
+    })
+  },
+  onHide() { this.clearAiState() },
+  onDestroy() { this.cancelAiRequest() },
+  cancelAiRequest() { this.aiSession += 1; if (typeof this.aiCancel === 'function') this.aiCancel(); this.aiCancel = null },
+  clearAiState() { this.cancelAiRequest(); this.aiStage = 'idle'; this.aiPreview = ''; this.aiReply = ''; this.aiMessage = '' },
+  previewAiAdvice() {
+    this.cancelAiRequest()
+    try {
+      this.aiPreview = buildAiAdviceSummary({ intakeKcal: 0, exerciseKcal: 0, netKcal: 0, remainingKcal: 0, mealCount: 0 })
+      this.aiReply = ''; this.aiMessage = ''; this.aiStage = 'preview'
+    } catch (error) { this.aiStage = 'failed'; this.aiMessage = 'AI 暂不可用，已保留本地建议' }
+  },
+  cancelAiAdvice() { this.clearAiState() },
+  confirmAiAdvice() {
+    if (this.aiStage !== 'preview' || !this.aiPreview) return
+    this.cancelAiRequest()
+    const session = this.aiSession
+    this.aiStage = 'loading'; this.aiReply = ''; this.aiMessage = ''
+    this.aiCancel = askVelaclaw(this.aiPreview, result => {
+      if (session !== this.aiSession) return
+      this.aiCancel = null
+      if (result.status === 'success') { this.aiReply = result.reply; this.aiStage = 'success' } else { this.aiMessage = 'AI 暂不可用，已保留本地建议'; this.aiStage = 'failed' }
     })
   }
 }
 </script>
 
 <style>
-.page { width: 100%; height: 100%; background-color: #101311; flex-direction: column; align-items: center; justify-content: center; }
-.brand { color: #ff9d45; font-size: 52px; font-weight: bold; }
-.loading { color: #aeb8b1; font-size: 22px; margin-top: 20px; }
+.page{width:100%;height:100%;background-color:#101311;flex-direction:column;align-items:center}.loading-view{width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center}.brand{color:#ff9d45;font-size:52px;font-weight:bold}.loading{color:#aeb8b1;font-size:22px;margin-top:20px}.verification{width:100%;height:100%;flex-direction:column;padding:34px 30px 28px}.mode-label{color:#79d69a;font-size:17px;text-align:center;letter-spacing:2px}.title{color:#f5f4ed;font-size:36px;font-weight:bold;text-align:center;margin:8px 0 22px}.notice-card,.advice-card,.ai-card{width:100%;flex-direction:column;background-color:#1d231f;border-radius:24px;padding:22px;margin-bottom:18px}.notice-card,.advice-card{border-width:2px;border-color:#73502f}.ai-card{border-width:2px;border-color:#375644}.card-title{color:#f5f4ed;font-size:23px;font-weight:bold;margin-bottom:10px}.body-copy,.advice-copy{color:#dce3dd;font-size:19px;line-height:28px}.boundary{color:#ff9d45;font-size:17px;margin-top:12px}.source-note{color:#8f9c94;font-size:15px;margin-top:9px}.ai-entry{width:100%;height:52px;border-radius:26px;background-color:#294436;color:#79d69a;font-size:19px}.ai-preview{width:100%;flex-direction:column}.preview-label{color:#79d69a;font-size:16px;margin-bottom:8px}.preview-copy,.ai-status{color:#dce3dd;font-size:17px;line-height:25px}.ai-actions{width:100%;justify-content:flex-end;margin-top:14px}.small{width:100px;height:44px;border-radius:22px;background-color:#334039;color:#f5f4ed;font-size:17px;margin-left:10px}.confirm{width:120px;background-color:#f28a32;color:#17120e}.failure{color:#ffc18a;font-size:18px}.retry{margin-top:14px}
 </style>

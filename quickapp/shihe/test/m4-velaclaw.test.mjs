@@ -27,6 +27,14 @@ callback.success({ reply: '  今天慢慢来。  ' })
 assert.deepEqual(results, [{ status: 'success', reply: '今天慢慢来。' }])
 
 results = []; timers = fakeTimers()
+requestAiAdvice({ ask(options) { options.success({ reply: 'Sorry, I encountered an error while processing your request.' }) } }, remaining, result => results.push(result), timers)
+assert.deepEqual(results, [{ status: 'unavailable', reason: 'infrastructure-failure-reply' }])
+
+results = []; timers = fakeTimers()
+requestAiAdvice({ ask(options) { options.success({ reply: 'Sorry，今天的安排有些满，建议先从规律吃饭开始。' }) } }, remaining, result => results.push(result), timers)
+assert.deepEqual(results, [{ status: 'success', reply: 'Sorry，今天的安排有些满，建议先从规律吃饭开始。' }])
+
+results = []; timers = fakeTimers()
 requestAiAdvice({ ask(options) { options.success({ reply: '   ' }) } }, remaining, result => results.push(result), timers)
 assert.equal(results[0].reason, 'invalid-reply')
 
@@ -55,4 +63,4 @@ for (const code of [200, 202, 203, 204, 1000, 1001]) {
 assert.doesNotThrow(() => requestAiAdvice(undefined, remaining, () => {}, fakeTimers()))
 assert.doesNotThrow(() => requestAiAdvice({}, remaining, () => {}, fakeTimers()))
 assert.doesNotThrow(() => requestAiAdvice({ ask() { throw new Error('sync') } }, remaining, () => {}, fakeTimers()))
-console.log('M4 VelaClaw 测试通过：脱敏汇总、目标措辞、10 秒阈值及成功/失败/超时/取消门禁均通过。')
+console.log('M4 VelaClaw 测试通过：脱敏汇总、目标措辞、基础设施失败回复及成功/失败/超时/取消门禁均通过。')

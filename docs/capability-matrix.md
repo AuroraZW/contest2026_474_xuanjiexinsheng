@@ -8,8 +8,8 @@
 - 比赛 UI 标签是 `vela-miwear-watch-5.0（开发者大赛）`，实际 `imageType` 为 `vela-miwear-watch-5.0-beta`；该比赛镜像已安装，466×466 圆屏 VVD `shihe-health-watch` 已创建并成功启动，启动日志出现 `service_health_onRegister`。
 - 食衡 M1 debug RPK 已在 `shihe-health-watch` 构建、安装并启动。首次设置保存 90 kg、2000 kcal 和默认三餐时间后，停止并重启应用可直达首页且数据保留；进入修改设置时数据可正确回填。
 - M3 模拟器验收已完成：新增、编辑、冷重启、历史、删除及即时回算均通过。
-- Ubuntu VM 当前 goldfish 已验证 `CONFIG_QUICKAPP=y`、`CONFIG_QUICKAPP_VAPP=y`；VelaClaw 禁用，`CONFIG_MQ_MAXMSGSIZE=32`。
-- 当前 goldfish 已运行基线 release RPK；食衡 release RPK 尚未在 goldfish 验证或部署。
+- Ubuntu VM 当前开源 goldfish 构建的 `.config` 同时包含 `CONFIG_FEATURE_SYSTEM_ROUTER=y` 与 `CONFIG_FEATURE_SYSTEM_VELACLAW=y`，但运行时日志确认未注册 `system.router`；该现象不代表所有 openvela 真机都缺少 router。
+- 当前 goldfish 已运行食衡 debug RPK：QuickApp、`system.velaclaw` 与 `ai_agent` 已启动；同一 RPK 从根 URI 启动时使用 index 验证降级页，完整七页流程以 AIoT 比赛模拟器为准。M4 无 Key 运行验收已通过：应用成功调用 `system.velaclaw`，`ai_agent` 记录 `No available backend` 并返回英文基础设施失败回复，应用识别该回复后显示中文本地降级“AI 暂不可用，已保留本地建议”；相关测试与 debug 构建通过。配置 Key 后的成功路径仍待用户私下验证，不记为通过。
 - 2026-09-11 已完成食衡 debug RPK 的比赛健康镜像与普通 `vela-watch-5.0` 镜像双镜像健康运行验收；该结论不等于 release RPK、goldfish 或真机已验证。
 - `tp-` key 仅由用户在官方 goldfish `ai_agent` 配置界面私下输入。食衡应用绝不接收或存储 key，也不设计自建后端。
 
@@ -48,11 +48,11 @@
 | 食品目录与文本解析 | P0，计划实现 | 普通 VVD 与 goldfish；固定 60 项及冻结解析样例 | 手动目录选择；待处理内容禁止静默保存 | 是 |
 | 餐食/运动修改与删除 | P0，计划实现 | 普通 VVD 与 goldfish；首页及历史即时回算、重启保留 | 操作失败保留原记录并提示 | 是 |
 | 运动数据来源 | P0，手动补录降级 | 本次比赛 `service.health` 仅开放 HEART_RATE/SPO2/STRESS，无法取得系统步数、运动记录或活动热量汇总 | 明示“手动补录 · MET 估算”，不生成 Mock、不宣称同步 | 是 |
-| goldfish RPK | P0 部署门禁 | Ubuntu goldfish；当前仅基线包已验证，食衡 release RPK 待验 | Windows VVD 可调 UI，但不能代替 goldfish | 是 |
+| goldfish RPK | P0 部署门禁 | 食衡 debug RPK 已启动；production release RPK 仍待 RC1 验证；运行时未注册 `system.router`，故根 URI 使用 index 验证降级页；完整七页流程以 AIoT 比赛模拟器为准 | index 明示环境边界并提供 VelaClaw 无 Key 降级验证；不虚构本地记餐可操作 | 是 |
 | 比赛健康镜像与 VVD | P1 验证载体 | `vela-miwear-watch-5.0-beta` 已安装；466×466 圆屏 `shihe-health-watch` 已创建并成功启动，ADB 为 `emulator-5554` | 健康卡能力未接入或不可用时显示不可用 | 否 |
 | `service.health` HEART_RATE/SPO2/STRESS | P1，可选增强 | 2026-09-11 已在比赛健康镜像完成 debug RPK 官方 Mock 运行验收；普通 `vela-watch-5.0` 无此 feature 的降级运行验收亦通过；真机未验证 | 明确不支持显示“当前设备暂不支持”，读取错误显示“健康数据暂时读取失败”，无效样本显示“暂无有效健康数据”；后续有效样本覆盖，主流程照常 | 否 |
 | `system.alarm` | 可选增强，待验证 | 支持该 feature 的 VVD/真机；当前环境未验证 | 保存该餐稍后时间，仅在下次打开/恢复时提示 | 否；不是 P0 阻塞项 |
-| VelaClaw | P1，可选增强 | 需重配/重编 goldfish，启用 VelaClaw/`ai_agent` 并按官方要求提高消息队列上限；当前禁用且上限为 32 | 10 秒失败或超时后使用确定性本地建议 | 否 |
+| VelaClaw | P1，可选增强 | goldfish 已注册 `system.velaclaw` 且 `ai_agent` 已启动；M4 已验证无 Key 时调用到达系统、后端不可用回复被拦截并显示中文本地降级；测试与 debug 构建通过。配置 Key 后成功路径仍待用户私下验证，不记为通过 | 用户确认全零脱敏汇总后调用；能力缺失、失败、空回复、基础设施失败回复或 10 秒超时显示“AI 暂不可用，已保留本地建议” | 否 |
 | 真实腕上录音 / 云端 ASR | P2，明确不做 | 无交付验证环境 | 明示边界的键入文本演示与本地确定性解析 | 否；禁止宣称 |
 | 自建云服务器 / 云账号 / 多设备同步 | P2，明确不做 | 无交付验证环境 | 设备本地独立运行、30 天保留 | 否；禁止宣称 |
 | 手机伴侣 App / 蓝牙同步 / 小米运动健康写入 | P2，明确不做 | 无交付验证环境 | 设备本地独立运行 | 否；禁止宣称 |
@@ -70,8 +70,8 @@
 - 模拟器 HEART_RATE、SPO2、STRESS 是官方 Mock 数据，必须标注模拟来源，不能外推为真机验证；只在页面可见时读取/订阅，离页取消。
 - 心率和血氧只展示；压力仅可触发温和本地建议。三类健康数据均不持久化、不进热量公式、不诊断。
 - 长期产品方向是在系统能力开放后优先同步步数、运动记录和活动热量；初赛只提供明确标注的手动补录 / MET 估算，不能宣称系统运动数据已同步。
-- goldfish 的 QUICKAPP/VAPP 只证明框架存在，不证明 alarm、health 或 VelaClaw 可用。
-- VelaClaw 当前只可验 10 秒回退路径；应用不得接收 key，不得发送不存在或推断的健康/个人数据。
+- goldfish 的编译配置不等于运行时 feature 已注册；本次 `ROUTER=y` 但 `system.router` 未注册是当前开源 goldfish 构建的实测结果，不能外推至所有 openvela 真机。
+- VelaClaw 无 Key 降级已完成 goldfish 实际验收；配置 Key 后的成功路径仍待用户在官方界面私下验证，当前不得宣称成功。应用不得接收 key，不得发送不存在或推断的健康/个人数据。
 - 核心验收以断网且所有可选能力关闭时仍可记录、确认保存、修改、删除、聚合并查看历史为准。
 - 视觉以 480×480 圆屏为主：深色表盘背景、暖橙餐食状态、绿色完成状态、大数字、圆角卡片；另检查方屏和窄屏不溢出。
 
