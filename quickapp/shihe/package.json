@@ -4,7 +4,7 @@
   "description": "食衡 openvela 手表快应用",
   "engines": { "node": ">=8.10" },
   "scripts": {
-    "test": "node test/m2-food-parser.test.mjs && node test/m2-meal-domain.test.mjs && node test/m3-energy-prompt.test.mjs && node test/m4-health-advice.test.mjs",
+    "test": "node test/m2-food-parser.test.mjs && node test/m2-meal-domain.test.mjs && node test/m3-energy-prompt.test.mjs && node test/m4-health-advice.test.mjs && node test/m4-health-watchdog.test.mjs",
     "start": "aiot start --watch",
     "build": "aiot build && npm run audit:build",
     "audit:build": "node scripts/audit-build-modules.mjs",

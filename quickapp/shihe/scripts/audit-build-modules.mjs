@@ -6,6 +6,7 @@ const pagesRoot = path.resolve('build/pages')
 const sourcePagesRoot = path.resolve('src/pages')
 const healthAdviceSource = await readFile(path.resolve('src/common/health-advice.js'), 'utf8')
 const healthServiceSource = await readFile(path.resolve('src/services/health-service.js'), 'utf8')
+const healthWatchdogSource = await readFile(path.resolve('src/common/no-response-watchdog.js'), 'utf8')
 const manifest = JSON.parse(await readFile(path.resolve('src/manifest.json'), 'utf8'))
 const manifestPages = manifest.router && manifest.router.pages
 assert.ok(manifestPages && typeof manifestPages === 'object', 'manifest router.pages 必须存在')
@@ -18,6 +19,11 @@ assert.match(healthAdviceSource, /健康数据暂时读取失败/, 'health 状�
 assert.match(healthAdviceSource, /暂无有效健康数据/, 'health 状态必须包含无效样本文案')
 assert.match(healthServiceSource, /status: healthFailureStatus\(code\)/, 'health fail 必须通过已测试的错误码映射')
 assert.match(healthServiceSource, /status: 'invalid-sample'/, 'health callback 无效样本必须独立标记')
+assert.match(healthWatchdogSource, /HEALTH_RESPONSE_TIMEOUT_MS\s*=\s*4000/, 'health 无响应看门狗必须等待 4 秒')
+assert.match(healthServiceSource, /status: 'read-error', reason: 'no-response'/, 'health 无响应必须标记为读取失败')
+assert.match(healthServiceSource, /callback: sample => \{\s*responseWatchdogs\.clear\(entry\.kind\)/, 'health sample 必须清理对应看门狗')
+assert.match(healthServiceSource, /fail: \(data, code\) => \{\s*responseWatchdogs\.clear\(entry\.kind\)/, 'health fail 必须清理对应看门狗')
+assert.match(healthServiceSource, /unsubscribeAllHealth\(\) \{\s*responseWatchdogs\.clearAll\(\)/, 'health 退订必须清理全部看门狗')
 const routes = Object.entries(manifestPages)
 const expectedPageCount = routes.length
 
