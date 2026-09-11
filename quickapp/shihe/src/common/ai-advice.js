@@ -1,6 +1,7 @@
 export const AI_ADVICE_TIMEOUT_MS = 10000
 
 const KNOWN_FAILURE_CODES = [200, 202, 203, 204, 1000, 1001]
+const INFRASTRUCTURE_FAILURE_PREFIXES = ['Sorry, I encountered an ']
 
 function requireFiniteInteger(value, name, minimum) {
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < minimum) {
@@ -25,6 +26,10 @@ export function normalizeAiReply(reply) {
   const normalized = reply.trim()
   if (!normalized || normalized.length > 2000 || normalized.indexOf('\u0000') >= 0) return null
   return normalized
+}
+
+function isInfrastructureFailureReply(reply) {
+  return INFRASTRUCTURE_FAILURE_PREFIXES.some(prefix => reply.startsWith(prefix))
 }
 
 export function aiFailureReason(code) {
@@ -56,7 +61,9 @@ export function requestAiAdvice(api, query, onResult, timers) {
       query,
       success(res) {
         const reply = normalizeAiReply(res && res.reply)
-        finish(reply ? { status: 'success', reply } : { status: 'unavailable', reason: 'invalid-reply' })
+        if (!reply) finish({ status: 'unavailable', reason: 'invalid-reply' })
+        else if (isInfrastructureFailureReply(reply)) finish({ status: 'unavailable', reason: 'infrastructure-failure-reply' })
+        else finish({ status: 'success', reply })
       },
       fail(data, code) {
         finish({ status: 'unavailable', reason: aiFailureReason(code) })

@@ -200,8 +200,10 @@ ParseResult {
 
 - P1，仅由用户主动触发并确认实际发送的最小文字摘要。
 - 使用官方 `@system.velaclaw` 接口和独立 10 秒计时器；失败、拒绝、离线、非法响应或超时均立即回退确定性本地建议，忽略迟到回调和页面销毁后的更新。
+- 对接口成功回调中的正文执行基础设施失败回复 guard：若回复是后端/Key 未配置等基础设施故障文本（包括本次无 Key 运行返回的英文失败回复），不得当作 AI 建议展示，统一显示“AI 暂不可用，已保留本地建议”并保留确定性本地建议。
 - 回复标“AI 生成，仅供参考”，不得写成事实或医疗结论，也不得发送不存在、推断出的健康或个人数据。
 - 应用绝不接收、读取或存储 key；用户只在 goldfish `ai_agent` 官方配置界面私下输入 `tp-` key。仓库与 RPK 不含 `tp-`/`sk-` key。
+- M4 goldfish 已验证无 Key 路径：应用成功调用 `system.velaclaw`，`ai_agent` 记录 `No available backend`，基础设施失败回复 guard 生效并显示上述中文本地降级；相关测试与 debug 构建通过。配置 Key 后的成功路径仍待用户私下验证，不记为通过。
 
 ## 7. 页面与记录行为
 
@@ -229,9 +231,9 @@ ParseResult {
 - 首页聚合：摄入、补录运动估算消耗、净摄入、今日余量计算正确；早餐、午餐、晚餐完成状态随保存、修改、删除即时更新。
 - 胶囊：每次打开/恢复重算；pending/later/skipped/completed；稍后到期；当天跳过；保存、修改和删除后的状态变化；alarm success/unavailable/fail。
 - 健康：三类官方 Mock；仅可见时订阅、离页取消；不可用文案；心率/血氧仅展示；压力仅触发温和本地建议；均不持久化、不进公式。
-- AI：9.9 秒成功、10 秒超时、失败、拒绝、迟到回调和页面销毁；确认应用无 key 输入/存储，并且只发送实际存在且用户确认的字段。
+- AI：9.9 秒成功、10 秒超时、失败、拒绝、基础设施失败回复 guard、迟到回调和页面销毁；确认应用无 key 输入/存储，并且只发送实际存在且用户确认的字段。M4 无 Key goldfish 降级、相关测试与 debug 构建已通过；配置 Key 后成功路径仍待用户私下验证。
 - 视觉：480×480 圆屏为主；方屏、窄屏无文字/卡片/按钮溢出；深色、暖橙、绿色、大数字和圆角卡片符合冻结视觉。
-- 环境：现有普通 `vela-watch-5` VVD 验 P0，不据此宣称 health；下载比赛镜像并创建对应 VVD 后再验 `service.health`；Ubuntu goldfish 验 release RPK、字体和离线闭环，当前固件只验 VelaClaw 降级；真机另验，Mock 不算真机。
+- 环境：现有普通 `vela-watch-5` VVD 验 P0，不据此宣称 health；比赛镜像 VVD 验 `service.health`；当前开源 goldfish 虽配置 `ROUTER=y` 但运行时未注册 `system.router`，故以 index 降级页验 RPK 与 VelaClaw 无 Key 回退，完整七页流程以 AIoT 比赛模拟器为准；真机另验，Mock 不算真机。
 
 ## 10. VM 事实源 / Windows 构建 Git 工作流
 
