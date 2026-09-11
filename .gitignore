@@ -12,3 +12,10 @@ quickapp/*/node_modules/
 quickapp/*/build/
 quickapp/*/dist/
 quickapp/*/sign/
+
+# Python helper caches
+__pycache__/
+*.pyc
+
+# Local Codex scratch work
+/.codex-tmp/

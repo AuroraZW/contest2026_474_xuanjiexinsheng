@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vela QuickApp Release Auditor"
+  short_description: "Audit RPK source logs and secret leakage risks"
+  default_prompt: "Use $vela-quickapp-release-auditor to audit this Vela QuickApp release before submission."
