@@ -107,7 +107,7 @@ export function dailyEnergySummary(meals, exercises, localDate, dailyTargetKcal)
   const intakeKcal = (meals || []).filter(item => item.localDate === localDate).reduce((sum, item) => sum + item.totalKcalSnapshot, 0)
   const exerciseKcal = (exercises || []).filter(item => item.localDate === localDate).reduce((sum, item) => sum + item.kcalSnapshot, 0)
   const netKcal = intakeKcal - exerciseKcal
-  return { intakeKcal, exerciseKcal, netKcal, remainingKcal: dailyTargetKcal - netKcal }
+  return { intakeKcal, exerciseKcal, netKcal, intakeTargetDeltaKcal: dailyTargetKcal - intakeKcal }
 }
 
 export function sevenDayEnergyTrend(meals, exercises, todayLocalDate, dailyTargetKcal) {

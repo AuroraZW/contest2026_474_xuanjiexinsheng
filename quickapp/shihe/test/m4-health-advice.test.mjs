@@ -28,10 +28,10 @@ assert.equal(healthFailureStatus(undefined), 'read-error')
 
 const foods = [{ id: 'rice', category: '主食' }, { id: 'greens', category: '蔬菜' }]
 const meal = foodId => ({ items: [{ foodId }] })
-const advice = values => deterministicLocalAdvice(Object.assign({ stress: null, remainingKcal: 500, meals: [], foods }, values))
+const advice = values => deterministicLocalAdvice(Object.assign({ stress: null, intakeTargetDeltaKcal: 500, meals: [], foods }, values))
 assert.equal(LOCAL_STRESS_REMINDER_THRESHOLD, 40)
-assert.match(advice({ stress: 40, remainingKcal: -1, meals: [] }), /呼吸一分钟/)
-assert.match(advice({ stress: 39, remainingKcal: -1, meals: [] }), /超出能量目标/)
+assert.match(advice({ stress: 40, intakeTargetDeltaKcal: -1, meals: [] }), /呼吸一分钟/)
+assert.match(advice({ stress: 39, intakeTargetDeltaKcal: -1, meals: [] }), /超过饮食目标/)
 assert.match(advice({ meals: [] }), /还没有记录餐食/)
 assert.match(advice({ meals: [meal('rice')] }), /还没有蔬菜/)
 assert.match(advice({ meals: [meal('greens')] }), /继续按实际份量记录/)
