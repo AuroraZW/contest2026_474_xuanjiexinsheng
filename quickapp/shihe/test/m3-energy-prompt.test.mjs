@@ -37,12 +37,13 @@ assert.equal(edited.kcalSnapshot, 336)
 
 const meals = [meal('breakfast', '2026-09-10', 'breakfast', 500), meal('lunch', '2026-09-10', 'lunch', 700)]
 let exercises = upsertExercise([], walk)
-assert.deepEqual(dailyEnergySummary(meals, exercises, '2026-09-10', 2000), { intakeKcal: 1200, exerciseKcal: 110, netKcal: 1090, remainingKcal: 910 })
+assert.deepEqual(dailyEnergySummary(meals, exercises, '2026-09-10', 2000), { intakeKcal: 1200, exerciseKcal: 110, netKcal: 1090, intakeTargetDeltaKcal: 800 })
 exercises = upsertExercise(exercises, edited)
-assert.deepEqual(dailyEnergySummary(meals, exercises, '2026-09-10', 1000), { intakeKcal: 1200, exerciseKcal: 336, netKcal: 864, remainingKcal: 136 })
+assert.deepEqual(dailyEnergySummary(meals, exercises, '2026-09-10', 1000), { intakeKcal: 1200, exerciseKcal: 336, netKcal: 864, intakeTargetDeltaKcal: -200 })
+assert.equal(dailyEnergySummary(meals, exercises, '2026-09-10', 2000).intakeTargetDeltaKcal, 800, '新增运动不得改变饮食目标差值')
 const run2 = Object.assign({}, edited, { id: 'run-2', kcalSnapshot: 84, durationMinutes: 10 })
 exercises = upsertExercise(exercises, run2)
-assert.equal(dailyEnergySummary(meals, exercises, '2026-09-10', 500).remainingKcal, -280)
+assert.equal(dailyEnergySummary(meals, exercises, '2026-09-10', 500).intakeTargetDeltaKcal, -700)
 exercises = deleteExercise(exercises, edited.id)
 assert.equal(dailyEnergySummary(meals, exercises, '2026-09-10', 500).exerciseKcal, 84)
 

@@ -15,10 +15,10 @@ export function buildAiAdviceSummary(input) {
   const intakeKcal = requireFiniteInteger(input.intakeKcal, '摄入 kcal', 0)
   const exerciseKcal = requireFiniteInteger(input.exerciseKcal, '运动消耗 kcal', 0)
   const netKcal = requireFiniteInteger(input.netKcal, '净摄入 kcal', -Number.MAX_SAFE_INTEGER)
-  const remainingKcal = requireFiniteInteger(input.remainingKcal, '目标差值 kcal', -Number.MAX_SAFE_INTEGER)
+  const intakeTargetDeltaKcal = requireFiniteInteger(input.intakeTargetDeltaKcal, '饮食目标差值 kcal', -Number.MAX_SAFE_INTEGER)
   const mealCount = requireFiniteInteger(input.mealCount, '已记录餐次数', 0)
-  const targetText = remainingKcal < 0 ? '超出目标 ' + Math.abs(remainingKcal) : '目标剩余 ' + remainingKcal
-  return '今日脱敏汇总：摄入 ' + intakeKcal + ' kcal；手动补录运动消耗 ' + exerciseKcal + ' kcal；净摄入 ' + netKcal + ' kcal；' + targetText + ' kcal；已记录餐次数 ' + mealCount + '。请给一句简短温和的生活管理建议，不作诊断。'
+  const targetText = intakeTargetDeltaKcal < 0 ? '食物摄入超过每日饮食目标 ' + Math.abs(intakeTargetDeltaKcal) : '距每日饮食目标 ' + intakeTargetDeltaKcal
+  return '今日脱敏汇总：食物摄入 ' + intakeKcal + ' kcal；手动补录运动消耗 ' + exerciseKcal + ' kcal；估算净摄入 ' + netKcal + ' kcal；' + targetText + ' kcal；已记录餐次数 ' + mealCount + '。请给一句简短温和的生活管理建议，不作诊断。'
 }
 
 export function normalizeAiReply(reply) {

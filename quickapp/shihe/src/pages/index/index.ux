@@ -53,7 +53,7 @@ export default {
   previewAiAdvice() {
     this.cancelAiRequest()
     try {
-      this.aiPreview = buildAiAdviceSummary({ intakeKcal: 0, exerciseKcal: 0, netKcal: 0, remainingKcal: 0, mealCount: 0 })
+      this.aiPreview = buildAiAdviceSummary({ intakeKcal: 0, exerciseKcal: 0, netKcal: 0, intakeTargetDeltaKcal: 0, mealCount: 0 })
       this.aiReply = ''; this.aiMessage = ''; this.aiStage = 'preview'
     } catch (error) { this.aiStage = 'failed'; this.aiMessage = 'AI 暂不可用，已保留本地建议' }
   },

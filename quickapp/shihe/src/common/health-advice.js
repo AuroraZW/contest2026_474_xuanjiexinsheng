@@ -32,8 +32,8 @@ export function deterministicLocalAdvice(input) {
   if (typeof data.stress === 'number' && isFinite(data.stress) && data.stress >= LOCAL_STRESS_REMINDER_THRESHOLD) {
     return '先慢慢呼吸一分钟，再决定是否进食，避免情绪化进食。'
   }
-  if (typeof data.remainingKcal === 'number' && isFinite(data.remainingKcal) && data.remainingKcal < 0) {
-    return '今日已超出能量目标，下一餐可优先选择清淡、适量的食物。'
+  if (typeof data.intakeTargetDeltaKcal === 'number' && isFinite(data.intakeTargetDeltaKcal) && data.intakeTargetDeltaKcal < 0) {
+    return '今日食物摄入已超过饮食目标，下一餐可优先选择清淡、适量的食物。'
   }
   const meals = Array.isArray(data.meals) ? data.meals : []
   if (!meals.length) return '今天还没有记录餐食，记下第一餐后建议会随记录更新。'

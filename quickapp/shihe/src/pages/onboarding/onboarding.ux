@@ -2,7 +2,7 @@
   <div class="page">
     <scroll class="content" scroll-y="true">
       <text class="title">首次设置</text>
-      <text class="subtitle">只需体重、目标与餐段</text>
+      <text class="subtitle">只需体重、饮食目标与餐段</text>
 
       <div class="warning" if="{{storageStatus === 'corrupt'}}">
         <text class="warning-text">检测到损坏的本地数据，只有确认重建后才会覆盖。</text>
@@ -19,8 +19,10 @@
       </div>
 
       <div class="card">
-        <text class="label">每日目标</text>
+        <text class="label">每日饮食目标</text>
         <text class="number orange">{{targetKcal}} kcal</text>
+        <text class="target-help">一天计划从食物中摄入的热量，不是运动消耗目标。</text>
+        <text class="target-note">默认参考值为 2000 kcal，可按自己的情况调整。</text>
         <slider min="800" max="5000" step="50" value="{{targetKcal}}" onchange="changeTarget"></slider>
       </div>
 
@@ -146,6 +148,8 @@ export default {
 .checkbox { width: 44px; height: 44px; }
 .check-label { color: #c7c4bc; font-size: 18px; margin-left: 9px; }
 .notice { color: #aaa8a1; font-size: 16px; line-height: 24px; margin-bottom: 11px; }
+.target-help { color: #c7c4bc; font-size: 16px; line-height: 23px; margin-bottom: 5px; }
+.target-note { color: #858681; font-size: 14px; line-height: 21px; margin-bottom: 8px; }
 .error { text-align: center; margin: 4px 0 11px 0; }
 .primary { width: 100%; height: 58px; border-radius: 29px; background-color: #f28a32; color: #17120e; font-size: 21px; font-weight: bold; }
 .bottom-space { height: 34px; }
